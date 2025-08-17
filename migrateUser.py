@@ -1,18 +1,13 @@
 import json
-import os
 from typing import List, Dict
 from userMapping import user_column_mapping
 from serviceMapping import service_column_mapping
-from firebase_admin import firestore
 from helpers import (
     determine_user_lifecycle,
     computeUserCounts,
     determine_bucket,
     add_service_note,
 )
-
-# Firestore client (initialized globally)
-db = firestore.client()
 
 note_columns = [
     "Contact Notes (Notes again)",
@@ -59,15 +54,34 @@ def aggregate_unique_addresses(services: List[Dict]) -> Dict[str, List[str]]:
         "addresses": fulls,
     }
 
-def migrateUser(batch_rows: List[Dict], writer):
+def migrateUser(batch_rows: List[Dict], writer, db):
+    """
+    batch_rows: rows for a single user
+    writer: Firestore BulkWriter
+    db: Firestore client
+    """
+
     if not batch_rows:
         return None, []
 
+    # Assign pre-allocated user ID
+    user_id = batch_rows[0].get("_user_id_allocated")
+    if not user_id:
+        raise ValueError("User ID not pre-allocated in row")
+
     # Build user
     user = build_user(batch_rows[0])
+    user["userId"] = user_id  # override with pre-allocated ID
 
-    # Build services
-    services = [build_service(row, user) for row in batch_rows]
+    # Build services with pre-allocated service IDs
+    services = []
+    for row in batch_rows:
+        service = build_service(row, user)
+        service_id = row.get("_service_id_allocated")
+        if not service_id:
+            raise ValueError("Service ID not pre-allocated in row")
+        service["serviceId"] = service_id
+        services.append(service)
 
     # User lifecycle
     lifecycle = determine_user_lifecycle(services)
@@ -93,6 +107,6 @@ def migrateUser(batch_rows: List[Dict], writer):
         service_ref = services_collection.document(service["serviceId"])
         writer.set(service_ref, service)
 
-    print(f"✅ Queued user {user['userId']} and {len(services)} services")
+    # print(f"✅ Queued user {user['userId']} and {len(services)} services")
 
     return user, services

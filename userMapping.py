@@ -1,10 +1,9 @@
 from helpers import format_phone_number, excelTimestampToUnix
-from generateUserId import generate_user_id
 
 # User CSV column → Firestore User field
 user_column_mapping = {
     # 🆔 Identification
-    "userId": lambda row: generate_user_id(),
+    "userId": lambda row: row["_user_id_allocated"],
     "userName": lambda row: row["Name"],
     "emailAddress": lambda row: None,
     "phoneNumber": lambda row: format_phone_number(row["Contact Number - Primary"]),

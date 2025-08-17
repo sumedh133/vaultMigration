@@ -1,9 +1,8 @@
 from helpers import excelTimestampToUnix, format_phone_number
-from generateServiceId import generate_service_id
 from exactWordMappings import SUB_STAGE_MAP
 
 service_column_mapping = {
-    "serviceId": lambda row, user: generate_service_id(),
+    "serviceId": lambda row, user: row["_service_id_allocated"],
     "serviceName": lambda row, user: row.get("Services", ""),
     "userId": lambda row, user: user["userId"],
     "userName": lambda row, user: user["userName"],

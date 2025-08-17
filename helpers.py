@@ -140,17 +140,21 @@ def format_phone_number(number) -> str:
 
 def determine_bucket(service: dict) -> str:
     status = service.get("serviceStatus", "").strip().lower()
-    stage = service.get("stage", "").strip().lower()
+    stage = service.get("serviceStage", "").strip().lower()
     blocker = service.get("blockerReason", "").strip()
 
     if status == "closed":
         return "closed"
-    elif blocker:
+
+
+    if blocker:
         return "blocked"
-    elif stage in ("qualified", "unqualified"):
+
+    if stage in ("qualified", "unqualified"):
         return "pre active"
-    else:
-        return "active"
+
+    return "active"
+
 
 
 def add_service_note(service: Dict[str, Any], column_name: str, row: Dict[str, Any]):
