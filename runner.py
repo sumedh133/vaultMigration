@@ -1,5 +1,6 @@
 import pandas as pd
 import firebase_admin
+import os
 from firebase_admin import credentials, firestore
 from migrateUser import migrateUser  # your optimized batch-write function
 
@@ -10,37 +11,54 @@ if not firebase_admin._apps:
 
 db = firestore.client()  # pass this to migrateUser if needed
 
-def run_migration(xlsx_path: str, start_row: int = 0, end_row: int | None = None):
-    # Load the Excel file into a DataFrame
-    df = pd.read_excel(xlsx_path)
-    df = df.fillna("")
+def run_migration(xlsx_path: str, chunk_size: int = 500, checkpoint_file: str = "checkpoint.txt"):
+    df = pd.read_excel(xlsx_path).fillna("")
+    
+    # Read checkpoint
+    last_user_id = None
+    if os.path.exists(checkpoint_file):
+        with open(checkpoint_file, "r") as f:
+            last_user_id = f.read().strip()
+    
+    # Filter rows to resume if checkpoint exists
+    if last_user_id:
+        df = df[df["Contact Number - Primary"].astype(str) != last_user_id]
 
-    # Slice based on start/end rows (pandas is 0-indexed)
-    if end_row is not None:
-        df = df.iloc[start_row:end_row]
-    else:
-        df = df.iloc[start_row:]
-
+    # Group rows by user (based on phone)
+    all_rows = df.to_dict(orient="records")
+    batches = []
     current_phone = None
     batch_rows = []
 
-    for _, row in df.iterrows():
+    for row in all_rows:
         phone = str(row.get("Contact Number - Primary", "")).strip()
-
         if current_phone is None or phone == current_phone:
             current_phone = phone
-            batch_rows.append(row.to_dict())
+            batch_rows.append(row)
         else:
-            migrateUser(batch_rows)  # pushes user + services in a single Firestore batch
+            batches.append(batch_rows)
             current_phone = phone
-            batch_rows = [row.to_dict()]
-
+            batch_rows = [row]
     if batch_rows:
-        migrateUser(batch_rows, save_to_file=False)  # last batch
+        batches.append(batch_rows)
+
+    # Process in chunks
+    for i in range(0, len(batches), chunk_size):
+        chunk = batches[i:i + chunk_size]
+        writer = db.bulk_writer()
+        for user_rows in chunk:
+            migrateUser(user_rows, writer)
+        writer.close()  # commits chunk to Firestore
+
+        # Save checkpoint (last user's phone)
+        last_user_phone = str(chunk[-1][0].get("Contact Number - Primary", "")).strip()
+        with open(checkpoint_file, "w") as f:
+            f.write(last_user_phone)
+
+        print(f"✅ Chunk {i // chunk_size + 1} committed ({len(chunk)} users)")
 
 if __name__ == "__main__":
     run_migration(
         "Vault Data for migration Input from Team - AllservicedFinalScriptOutput_V1(WithoutPhoneNo).xlsx",
-        start_row=110,
-        end_row=112
+        chunk_size=20
     )

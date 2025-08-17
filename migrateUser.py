@@ -59,57 +59,40 @@ def aggregate_unique_addresses(services: List[Dict]) -> Dict[str, List[str]]:
         "addresses": fulls,
     }
 
-def migrateUser(batch_rows: List[Dict], save_to_file: bool = True, out_dir: str = "debug_outputs"):
+def migrateUser(batch_rows: List[Dict], writer):
     if not batch_rows:
         return None, []
 
-    # 1️⃣ Build user
+    # Build user
     user = build_user(batch_rows[0])
 
-    # 2️⃣ Build services
+    # Build services
     services = [build_service(row, user) for row in batch_rows]
 
-    # 3️⃣ User lifecycle
+    # User lifecycle
     lifecycle = determine_user_lifecycle(services)
     user["lifecycle"] = lifecycle
     for s in services:
         s["lifecycle"] = lifecycle
 
-    # 4️⃣ Counts
+    # Counts
     counts = computeUserCounts(services)
     user.update(counts)
     user["serviceIds"] = [s["serviceId"] for s in services]
 
-    # 5️⃣ Aggregate unique addresses
+    # Aggregate unique addresses
     user.update(aggregate_unique_addresses(services))
 
-    if save_to_file:
-        # Optional: save JSON locally
-        os.makedirs(out_dir, exist_ok=True)
-        file_path = os.path.join(out_dir, f"user_{user['userId']}.json")
-        with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(
-                {"user": user, "services": services},
-                f,
-                indent=4,
-                ensure_ascii=False
-            )
-        print(f"✅ Debug JSON saved to {file_path}")
-    else:
-        # Push to Firebase in a single batch
-        batch = db.batch()
-        # Write the user
-        user_ref = db.collection("vaultUsers").document(user["userId"])
-        batch.set(user_ref, user)
+    # Push to Firebase using BulkWriter
+    user_ref = db.collection("vaultUsers").document(user["userId"])
+    writer.set(user_ref, user)
 
-        # Write the services to the top-level collection
-        services_collection = db.collection("vaultServices")
-        for service in services:
-            service_ref = services_collection.document(service["serviceId"])
-            batch.set(service_ref, service)
+    services_collection = db.collection("vaultServices")
+    for service in services:
+        service["userId"] = user["userId"]
+        service_ref = services_collection.document(service["serviceId"])
+        writer.set(service_ref, service)
 
-        batch.commit()
-        print(f"✅ Pushed user {user['userId']} and {len(services)} services to Firebase in a single batch")
-
+    print(f"✅ Queued user {user['userId']} and {len(services)} services")
 
     return user, services
