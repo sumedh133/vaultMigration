@@ -146,15 +146,12 @@ def determine_bucket(service: dict) -> str:
     if status == "closed":
         return "closed"
 
-
     if blocker:
         return "blocked"
 
     if stage in ("qualified", "unqualified"):
         return "pre active"
-
     return "active"
-
 
 
 def add_service_note(service: Dict[str, Any], column_name: str, row: Dict[str, Any]):

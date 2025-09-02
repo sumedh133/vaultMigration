@@ -1,53 +1,60 @@
 from helpers import format_phone_number, excelTimestampToUnix
+from exactWordMappings import POC_MAP, CALL_STATUS_MAP, USER_SOURCE_MAP
 
-# User CSV column → Firestore User field
+def safe_str(val):
+    """Convert value to string safely and strip whitespace."""
+    if val is None:
+        return ""
+    return str(val).strip()
+
 user_column_mapping = {
     # 🆔 Identification
     "userId": lambda row: row["_user_id_allocated"],
-    "userName": lambda row: row["Name"],
+    "userName": lambda row: safe_str(row.get("Name", "")) or "Unnamed",
     "emailAddress": lambda row: None,
-    "phoneNumber": lambda row: format_phone_number(row["Contact Number - Primary"]),
+    "phoneNumber": lambda row: format_phone_number(row.get("Contact Number - Primary", "")) or "0000000000",
     "phoneNos": lambda row: [
         {
-            "number": format_phone_number(row["Contact Number - Primary"]),
-            "addedOn": excelTimestampToUnix(row["Date of Creation"]),
+            "number": format_phone_number(row.get("Contact Number - Primary", "")) or "0000000000",
+            "addedOn": excelTimestampToUnix(row.get("Date of Creation")),
         }
-    ]
-    + (
+    ] + (
         [
             {
-                "number": format_phone_number(row["Secondary No."]),
-                "addedOn": excelTimestampToUnix(row["Date of Creation"]),
+                "number": format_phone_number(row.get("Secondary No.", "")),
+                "addedOn": excelTimestampToUnix(row.get("Date of Creation")),
             }
         ]
         if row.get("Secondary No.")
         else []
     ),
 
-    "userSource": lambda row: row.get("Lead Source", ""),
 
-    # 📍 Addresses (keeping empty lists for now, same as you had)
+    # 📍 Addresses
     "addressLine1s": lambda row: [],
     "addressLine2s": lambda row: [],
     "addressLine3s": lambda row: [],
     "addresses": lambda row: [],
 
-    # 👤 Agent Info
-    "agentName": lambda row: row.get("Acquisition POC", ""),
-    "acquisitionPOC": lambda row: row.get("Acquisition POC", ""),
-    "salesPOC": lambda row: row.get("Sales PoC", ""),
+    # 👤 Agent Info (applied POC_MAP)
+    "agentName": lambda row: POC_MAP.get(safe_str(row.get("Acquisition POC", "")), safe_str(row.get("Acquisition POC", ""))),
+    "acquisitionPOC": lambda row: POC_MAP.get(safe_str(row.get("Acquisition POC", "")), safe_str(row.get("Acquisition POC", ""))),
+    "salesPOC": lambda row: POC_MAP.get(safe_str(row.get("Sales PoC", "")), safe_str(row.get("Sales PoC", ""))),
 
     # 🔄 Lifecycle & Status
     "lifecycle": lambda row: "lead",
-    "userInterest": lambda row: row.get("User Interest", ""),
-    "escalated": lambda row: str(row.get("Escalated", "")).strip().lower() == "yes",
+    "userInterest": lambda row: "interested",
+    "escalated": lambda row: safe_str(row.get("Escalated", "")).lower() == "yes",
     "onHoldUntil": lambda row: None,
 
-    # 📞 Contact Result Tracking
-    "callStatus": lambda row: row.get("Communication Level Status", ""),
+    # 📞 Contact Result Tracking (applied CALL_STATUS_MAP)
+    "callStatus": lambda row: CALL_STATUS_MAP.get(
+        safe_str(row.get("Communication Level Status", "")),
+        safe_str(row.get("Communication Level Status", ""))
+    ),
     "ASLC": lambda row: excelTimestampToUnix(row.get("Last Connected ")),
     "ASLA": lambda row: excelTimestampToUnix(row.get("Last Connected ")),
-
+    
     # 📊 Counters & Metrics
     "numberOfServices": lambda row: 0,
     "activeSr": lambda row: 0,
@@ -71,12 +78,17 @@ user_column_mapping = {
     "notes": lambda row: [],
 
     # 📅 Timestamps
-    "added": lambda row: excelTimestampToUnix(row.get("Date of Creation", "")),
-    "lastModified": lambda row: excelTimestampToUnix(row.get("Date of Creation", "")),
+    "added": lambda row: excelTimestampToUnix(row.get("Date of Creation")),
+    "lastModified": lambda row: excelTimestampToUnix(row.get("Date of Creation")),
 
     # 🧾 Audit / Last Update Info
     "updateBy": lambda row: None,
 
     # activity
     "activity": lambda row: [],
+
+    # 🌐 User Source (applied USER_SOURCE_MAP)
+    "userSource": lambda row: USER_SOURCE_MAP.get(
+        safe_str(row.get("Lead Source", "")), safe_str(row.get("Lead Source", ""))
+    ),
 }

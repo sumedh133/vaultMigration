@@ -13,7 +13,11 @@ db = firestore.client()
 
 
 def allocate_ids(counter_doc_ref, label: str, chunk_size: int):
-    """Pre-allocate a block of IDs in Firestore and return the list."""
+    """
+    Pre-allocate a block of IDs in Firestore and return the list.
+    IDs format: <label><prefix><count>, e.g., SRA1000
+    Handles prefix rollover A->B->...->Z and count rollover 1000-9999.
+    """
     counter_doc = counter_doc_ref.get()
     count = 999
     prefix = "A"
@@ -26,19 +30,23 @@ def allocate_ids(counter_doc_ref, label: str, chunk_size: int):
         doc_label = data.get("label", label)
 
     ids = []
-    for i in range(1, chunk_size + 1):
-        new_count = count + i
+    final_count = count
+    final_prefix = prefix
+
+    for _ in range(chunk_size):
+        new_count = final_count + 1
         if new_count > 9999:
             new_count = 1000
-            if prefix == "Z":
+            if final_prefix == "Z":
                 raise ValueError(f"{label} prefix limit reached (Z)")
-            prefix = chr(ord(prefix) + 1)
-        ids.append(f"{doc_label}{prefix}{new_count}")
+            final_prefix = chr(ord(final_prefix) + 1)
+        ids.append(f"{doc_label}{final_prefix}{new_count}")
+        final_count = new_count
 
-    # Update counter once per chunk
+    # Update Firestore with the correct final count and prefix
     counter_doc_ref.update({
-        "count": count + chunk_size,
-        "prefix": prefix,
+        "count": final_count,
+        "prefix": final_prefix,
         "label": doc_label
     })
 
@@ -116,6 +124,6 @@ def run_migration(xlsx_path: str, chunk_size: int = 500, checkpoint_file: str = 
 
 if __name__ == "__main__":
     run_migration(
-        "Vault Data for migration Input from Team - AllservicedFinalScriptOutput_V1(WithoutPhoneNo).xlsx",
-        chunk_size=20
+        "Vault Data for migration Input from Team.xlsx",
+        chunk_size=200
     )
