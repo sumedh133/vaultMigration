@@ -17,6 +17,7 @@ note_columns = [
     "BBMP STATUS (4th Note)",
     "EPID (5th Note)",
     "Reference number",
+    "Lead ID (Passed in Notes)",
 ]
 
 def build_user(row: Dict) -> Dict:
@@ -73,10 +74,20 @@ def migrateUser(batch_rows: List[Dict], writer, db):
     user = build_user(batch_rows[0])
     user["userId"] = user_id  # override with pre-allocated ID
 
-    # Build services with pre-allocated service IDs
+    # Deduplicate services by (serviceName, addressLine1)
+    seen_services = set()
     services = []
     for row in batch_rows:
         service = build_service(row, user)
+
+        # uniqueness key
+        key = (service.get("serviceName", "").strip().lower(),
+               service.get("addressLine1", "").strip().lower())
+
+        if key in seen_services:
+            continue  # skip duplicate
+        seen_services.add(key)
+
         service_id = row.get("_service_id_allocated")
         if not service_id:
             raise ValueError("Service ID not pre-allocated in row")
@@ -106,7 +117,5 @@ def migrateUser(batch_rows: List[Dict], writer, db):
         service["userId"] = user["userId"]
         service_ref = services_collection.document(service["serviceId"])
         writer.set(service_ref, service)
-
-    # print(f"✅ Queued user {user['userId']} and {len(services)} services")
 
     return user, services

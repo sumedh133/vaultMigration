@@ -125,17 +125,25 @@ def excelTimestampToUnix(excel_date):
 
     # Unknown type
     return None
-def format_phone_number(number) -> str:
+
+
+def format_phone_number(number: str) -> str:
     """
-    Takes an Excel phone number (with country code) and returns
+    Takes a phone number (with or without country code) and returns
     a clean string in the format +<countrycode><number>, no spaces.
+    If no country code is present, assumes +91 (India).
     """
     if not number:
         return ""
-    number_str = str(number).replace(" ", "").replace("-", "")
-    if not number_str.startswith("+"):
-        number_str = "+" + number_str
-    return number_str
+
+    number_str = str(number).strip().replace(" ", "").replace("-", "")
+
+    # If it already has a +, keep it as is (other country codes allowed)
+    if number_str.startswith("+"):
+        return number_str
+
+    # Otherwise, assume it's Indian and add +91
+    return "+91" + number_str
 
 
 def determine_bucket(service: dict) -> str:

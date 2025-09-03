@@ -25,6 +25,8 @@ POC_MAP = {
     "Aryan R": "Aryan R",
     "Garima Doulani": "Garima Doulani",
     "unassigned": "Unassigned",
+    "Unassigned": "Unassigned",
+    "":"Unassigned"
 }
 
 SERVICE_STATUS_MAP = {

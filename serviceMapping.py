@@ -16,10 +16,17 @@ def safe_str(val):
         return ""
     return str(val).strip()
 
+def generate_bucket_transitions(row):
+    """Fill all buckets with the same enteredAt timestamp from Date column."""
+    ts = excelTimestampToUnix(row.get("Date"))
+    buckets = ["pre active", "active", "blocked", "closed", "archived"]
+    return [{"bucket": bucket, "enteredAt": ts} for bucket in buckets]
+
+
 
 def map_service_stage_status(row):
     stage = safe_str(row.get("Service Stage", ""))
-    substage = safe_str(row.get("Substage", ""))
+    substage = safe_str(row.get("Sub Stage", ""))
 
     # Special case: Duplicate + Terminated
     if stage == "Duplicate" and substage == "Terminated":
@@ -57,7 +64,7 @@ service_column_mapping = {
     "agentName": lambda row, user: POC_MAP.get(safe_str(row.get("Acquisition POC", "")), safe_str(row.get("Acquisition POC", ""))),
     "acquisitionPOC": lambda row, user: POC_MAP.get(safe_str(row.get("Acquisition POC", "")), safe_str(row.get("Acquisition POC", ""))),
     "serviceSalesPOC": lambda row, user: POC_MAP.get(safe_str(row.get("Sales PoC", "")), safe_str(row.get("Sales PoC", ""))),
-    "servicePOC": lambda row, user: POC_MAP.get(safe_str(row.get("Service PoC", "")), safe_str(row.get("Service PoC", ""))),
+    "servicePOC": lambda row, user: POC_MAP.get(safe_str(row.get("Service POC", "")), safe_str(row.get("Service POC", ""))),
     "blockerPOC": lambda row, user: POC_MAP.get(safe_str(row.get("Blocker POC", "")), safe_str(row.get("Blocker POC", ""))),
 
     # 🔄 Lifecycle & Status
@@ -72,19 +79,20 @@ service_column_mapping = {
 
     # 📞 Contact Result Tracking
     "callStatus": lambda row, user: CALL_STATUS_MAP.get(safe_str(row.get("Communication Level Status", "")), safe_str(row.get("Communication Level Status", ""))),
-    "ASLC": lambda row, user: excelTimestampToUnix(row.get("Last Connected ")),
-    "ASLA": lambda row, user: excelTimestampToUnix(row.get("Last Connected ")),
+    "ASLC": lambda row, user: excelTimestampToUnix(row.get("Date")),
+    "ASLA": lambda row, user: excelTimestampToUnix(row.get("Date")),
 
     # 📍 Address
-    "addressLine1": lambda row, user: safe_str(row.get("Apartment Name", "")) or f"Apartment-{random.randint(1000, 9999)}",
+    "addressLine1": lambda row, user: safe_str(row.get("Society Name", "")) or f"Apartment-{random.randint(1000, 9999)}",
     "addressLine2": lambda row, user: safe_str(row.get("Unit No. (Optional but preferable)", "")),
     "addressLine3": lambda row, user: safe_str(row.get("Block No. (Optional)", "")),
-    "address": lambda row, user: ", ".join(
-        part for part in [
-            safe_str(row.get("Society (Area - Addrr1 1)", "")),
-            safe_str(row.get("Addr2 - (Jurisdiction)", ""))
-        ] if part
-    ),
+    "address": lambda row, user: safe_str(row.get("Society Name", "")) or f"Apartment-{random.randint(1000, 9999)}",
+    # "address": lambda row, user: ", ".join(
+    #     part for part in [
+    #         safe_str(row.get("Society (Area - Addrr1 1)", ""))
+    #         # safe_str(row.get("Addr2 - (Jurisdiction)", ""))
+    #     ] if part
+    # ),
 
     # 📊 Financials
     "serviceAmount": lambda row, user: int(row.get("Service Price for CRM") or 0),
@@ -93,7 +101,7 @@ service_column_mapping = {
     # 📄 Process Tracking
     "docummentSubmissionStatus": lambda row, user: safe_str(row.get("Document Collected", "")).lower() in ["yes", "not needed"],
     "summaryEmailSentStatus": lambda row, user: False,
-    "blockerReason": lambda row, user: safe_str(row.get("Blocker (Reason)", "")) if safe_str(row.get("Blocked", "")).lower() == "yes" else "",
+    "blockerReason": lambda row, user: safe_str(row.get("Blocker Reason", "")) if safe_str(row.get("Blocked", "")).lower() == "yes" else "",
 
     # 🔗 Associations
     "paymentIds": lambda row, user: [],
@@ -103,8 +111,11 @@ service_column_mapping = {
     "communicationTasks": lambda row, user: [],
 
     # 📅 Timestamps
-    "added": lambda row, user: excelTimestampToUnix(row.get("Date of Creation")),
-    "lastModified": lambda row, user: excelTimestampToUnix(row.get("Date of Creation")),
+    "added": lambda row, user: excelTimestampToUnix(row.get("Date")),
+    "lastModified": lambda row, user: excelTimestampToUnix(row.get("Date")),
+    "appliedDate": lambda row, user: excelTimestampToUnix(row.get("Applied Date")),
+    "bucketTransitions": lambda row, user: generate_bucket_transitions(row),
     "completionTime": lambda row, user: None,
+    
     "updateBy": lambda row, user: None,
 }

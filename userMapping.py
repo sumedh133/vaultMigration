@@ -1,28 +1,30 @@
 from helpers import format_phone_number, excelTimestampToUnix
 from exactWordMappings import POC_MAP, CALL_STATUS_MAP, USER_SOURCE_MAP
 
+
 def safe_str(val):
     """Convert value to string safely and strip whitespace."""
     if val is None:
         return ""
     return str(val).strip()
 
+
 user_column_mapping = {
     # 🆔 Identification
     "userId": lambda row: row["_user_id_allocated"],
     "userName": lambda row: safe_str(row.get("Name", "")) or "Unnamed",
     "emailAddress": lambda row: None,
-    "phoneNumber": lambda row: format_phone_number(row.get("Contact Number - Primary", "")) or "0000000000",
+    "phoneNumber": lambda row: format_phone_number(row.get("Primary Phone No.(Cleaned)", "")) or "0000000000",
     "phoneNos": lambda row: [
         {
-            "number": format_phone_number(row.get("Contact Number - Primary", "")) or "0000000000",
-            "addedOn": excelTimestampToUnix(row.get("Date of Creation")),
+            "number": format_phone_number(row.get("Primary Phone No.(Cleaned)", "")) or "0000000000",
+            "addedOn": excelTimestampToUnix(row.get("Date")),
         }
     ] + (
         [
             {
                 "number": format_phone_number(row.get("Secondary No.", "")),
-                "addedOn": excelTimestampToUnix(row.get("Date of Creation")),
+                "addedOn": excelTimestampToUnix(row.get("Date")),
             }
         ]
         if row.get("Secondary No.")
@@ -52,9 +54,9 @@ user_column_mapping = {
         safe_str(row.get("Communication Level Status", "")),
         safe_str(row.get("Communication Level Status", ""))
     ),
-    "ASLC": lambda row: excelTimestampToUnix(row.get("Last Connected ")),
-    "ASLA": lambda row: excelTimestampToUnix(row.get("Last Connected ")),
-    
+    "ASLC": lambda row: excelTimestampToUnix(row.get("Date")),
+    "ASLA": lambda row: excelTimestampToUnix(row.get("Date")),
+
     # 📊 Counters & Metrics
     "numberOfServices": lambda row: 0,
     "activeSr": lambda row: 0,
@@ -78,8 +80,8 @@ user_column_mapping = {
     "notes": lambda row: [],
 
     # 📅 Timestamps
-    "added": lambda row: excelTimestampToUnix(row.get("Date of Creation")),
-    "lastModified": lambda row: excelTimestampToUnix(row.get("Date of Creation")),
+    "added": lambda row: excelTimestampToUnix(row.get("Date")),
+    "lastModified": lambda row: excelTimestampToUnix(row.get("Date")),
 
     # 🧾 Audit / Last Update Info
     "updateBy": lambda row: None,
@@ -89,6 +91,7 @@ user_column_mapping = {
 
     # 🌐 User Source (applied USER_SOURCE_MAP)
     "userSource": lambda row: USER_SOURCE_MAP.get(
-        safe_str(row.get("Lead Source", "")), safe_str(row.get("Lead Source", ""))
+        safe_str(row.get("Lead Source", "")), safe_str(
+            row.get("Lead Source", ""))
     ),
 }
