@@ -97,35 +97,102 @@ def computeUserCounts(services: list) -> dict:
     return counts
 
 
+# def excelTimestampToUnix(excel_date):
+#     """
+#     Convert an Excel or string date to UNIX timestamp in seconds.
+#     Handles Excel serial numbers or strings in MM/DD/YYYY format.
+#     Returns None for empty/invalid dates.
+#     """
+#     if excel_date in (None, "", "NaT"):
+#         return None
+
+#     # Excel serial number (int/float)
+#     if isinstance(excel_date, (int, float)):
+#         excel_start = datetime(1899, 12, 30)
+#         date = excel_start + timedelta(days=excel_date)
+#         return int(date.timestamp())  # seconds
+
+#     # String in MM/DD/YYYY format
+#     if isinstance(excel_date, str):
+#         excel_date = excel_date.strip()
+#         if not excel_date:
+#             return None
+#         try:
+#             date = datetime.strptime(excel_date, "%m/%d/%Y")
+#             return int(date.timestamp())  # seconds
+#         except ValueError:
+#             return None
+
+#     # Unknown type
+#     return None
+
+
 def excelTimestampToUnix(excel_date):
     """
-    Convert an Excel or string date to UNIX timestamp in seconds.
-    Handles Excel serial numbers or strings in MM/DD/YYYY format.
+    Convert an Excel date/timestamp to UNIX timestamp in seconds.
+    Handles:
+    - Excel serial numbers (int/float)
+    - MM/DD/YYYY format strings
+    - ISO format strings (YYYY-MM-DD HH:MM:SS with optional microseconds)
+    - datetime objects
     Returns None for empty/invalid dates.
     """
     if excel_date in (None, "", "NaT"):
         return None
-
+    
+    # Handle datetime objects directly
+    if isinstance(excel_date, datetime):
+        return int(excel_date.timestamp())
+    
     # Excel serial number (int/float)
     if isinstance(excel_date, (int, float)):
+        # Check for NaN specifically
+        import math
+        if math.isnan(excel_date):
+            return None
         excel_start = datetime(1899, 12, 30)
         date = excel_start + timedelta(days=excel_date)
         return int(date.timestamp())  # seconds
-
-    # String in MM/DD/YYYY format
+    
+    # String formats
     if isinstance(excel_date, str):
         excel_date = excel_date.strip()
         if not excel_date:
             return None
+        
         try:
+            # Try MM/DD/YYYY format first
             date = datetime.strptime(excel_date, "%m/%d/%Y")
-            return int(date.timestamp())  # seconds
+            return int(date.timestamp())
         except ValueError:
-            return None
-
+            pass
+        
+        try:
+            # Try ISO format with microseconds (YYYY-MM-DD HH:MM:SS.ffffff)
+            date = datetime.strptime(excel_date, "%Y-%m-%d %H:%M:%S.%f")
+            return int(date.timestamp())
+        except ValueError:
+            pass
+        
+        try:
+            # Try ISO format without microseconds (YYYY-MM-DD HH:MM:SS)
+            date = datetime.strptime(excel_date, "%Y-%m-%d %H:%M:%S")
+            return int(date.timestamp())
+        except ValueError:
+            pass
+        
+        try:
+            # Try date only format (YYYY-MM-DD)
+            date = datetime.strptime(excel_date, "%Y-%m-%d")
+            return int(date.timestamp())
+        except ValueError:
+            pass
+        
+        # If all formats fail, return None
+        return None
+    
     # Unknown type
     return None
-
 
 def format_phone_number(number: str) -> str:
     """
@@ -150,6 +217,7 @@ def determine_bucket(service: dict) -> str:
     status = service.get("serviceStatus", "").strip().lower()
     stage = service.get("serviceStage", "").strip().lower()
     blocker = service.get("blockerReason", "").strip()
+    # print(status,stage,blocker)
 
     if status == "closed":
         return "closed"
@@ -159,6 +227,7 @@ def determine_bucket(service: dict) -> str:
 
     if stage in ("qualified", "unqualified"):
         return "pre active"
+    
     return "active"
 
 
@@ -180,6 +249,8 @@ def add_service_note(service: Dict[str, Any], column_name: str, row: Dict[str, A
     note_content = str(note_content).strip()
     if not note_content:
         return
+    
+    print(note_content)
 
     note_entry = {
         "noteContent": note_content,

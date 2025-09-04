@@ -18,6 +18,7 @@ note_columns = [
     "EPID (5th Note)",
     "Reference number",
     "Lead ID (Passed in Notes)",
+    "Notes"
 ]
 
 def build_user(row: Dict) -> Dict:

@@ -54,7 +54,7 @@ def allocate_ids(counter_doc_ref, label: str, chunk_size: int):
 
 
 def run_migration(xlsx_path: str, chunk_size: int = 500, checkpoint_file: str = "checkpoint.txt"):
-    df = pd.read_excel(xlsx_path, sheet_name="Paused Services",dtype={"Primary Phone No.(Cleaned)": str}).fillna("")
+    df = pd.read_excel(xlsx_path, sheet_name="Merged sheet for CRM",dtype={"Primary Phone No.(Cleaned)": str}).fillna("")
 
     # # Read checkpoint
     # last_user_id = None
@@ -124,6 +124,6 @@ def run_migration(xlsx_path: str, chunk_size: int = 500, checkpoint_file: str = 
 
 if __name__ == "__main__":
     run_migration(
-        "users_services_template (2).xlsx",
+        "Copy of users_services_template (1).xlsx",
         chunk_size=200
     )

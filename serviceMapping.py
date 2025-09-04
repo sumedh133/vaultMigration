@@ -84,15 +84,16 @@ service_column_mapping = {
 
     # 📍 Address
     "addressLine1": lambda row, user: safe_str(row.get("Society Name", "")) or f"Apartment-{random.randint(1000, 9999)}",
-    "addressLine2": lambda row, user: safe_str(row.get("Unit No. (Optional but preferable)", "")),
+    "addressLine2": lambda row, user: safe_str(row.get("Unit No.", "")),
     "addressLine3": lambda row, user: safe_str(row.get("Block No. (Optional)", "")),
-    "address": lambda row, user: safe_str(row.get("Society Name", "")) or f"Apartment-{random.randint(1000, 9999)}",
-    # "address": lambda row, user: ", ".join(
-    #     part for part in [
-    #         safe_str(row.get("Society (Area - Addrr1 1)", ""))
-    #         # safe_str(row.get("Addr2 - (Jurisdiction)", ""))
-    #     ] if part
-    # ),
+    # "address": lambda row, user: safe_str(row.get("Society Name", "")) or f"Apartment-{random.randint(1000, 9999)}",
+    "address": lambda row, user: ", ".join(
+        part for part in [
+            safe_str(row.get("Unit No.", "")),
+            safe_str(row.get("Society Name", ""))
+            # safe_str(row.get("Addr2 - (Jurisdiction)", ""))
+        ] if part
+    ),
 
     # 📊 Financials
     "serviceAmount": lambda row, user: int(row.get("Service Price for CRM") or 0),
@@ -114,6 +115,7 @@ service_column_mapping = {
     "added": lambda row, user: excelTimestampToUnix(row.get("Date")),
     "lastModified": lambda row, user: excelTimestampToUnix(row.get("Date")),
     "appliedDate": lambda row, user: excelTimestampToUnix(row.get("Applied Date")),
+    "reAppliedCount": lambda row, user: row.get("Re-applied Count",0),
     "bucketTransitions": lambda row, user: generate_bucket_transitions(row),
     "completionTime": lambda row, user: None,
     

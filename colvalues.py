@@ -1,20 +1,11 @@
 import pandas as pd
 
 # Load your Excel file
-df = pd.read_excel("Vault Data for migration Input from Team.xlsx")
+df = pd.read_excel("Copy of users_services_template (1).xlsx", sheet_name="Merged sheet for CRM",dtype={"Primary Phone No.(Cleaned)": str}).fillna("")
 
 # List the columns you want to check
 columns_to_check = [
-    "Services",
-    "Lead Source",
-    "Status",
-    "Communication Level Status",
-    "Service Stage",
-    "Substage",
-    "Blocked",
-    "Sales PoC",
-    "Acquisition POC",
-    "Service PoC",
+    "Notes",
 ]
 
 # Print unique values for each column
