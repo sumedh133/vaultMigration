@@ -83,6 +83,7 @@ def migrateUser(batch_rows: List[Dict], writer, db):
 
         # uniqueness key
         key = (service.get("serviceName", "").strip().lower(),
+               service.get("addressLine2","").strip().lower(),
                service.get("addressLine1", "").strip().lower())
 
         if key in seen_services:
@@ -108,6 +109,16 @@ def migrateUser(batch_rows: List[Dict], writer, db):
 
     # Aggregate unique addresses
     user.update(aggregate_unique_addresses(services))
+    
+    # ✅ Set user["added"] as the eldest service "added"
+    added_timestamps = [s.get("added") for s in services if s.get("added") is not None]
+    if added_timestamps:
+        user["added"] = min(added_timestamps)
+
+    # ✅ Set user["lastModified"] as the youngest service "lastModified"
+    modified_timestamps = [s.get("lastModified") for s in services if s.get("lastModified") is not None]
+    if modified_timestamps:
+        user["lastModified"] = max(modified_timestamps)
 
     # Push to Firebase using BulkWriter
     user_ref = db.collection("vaultUsers").document(user["userId"])

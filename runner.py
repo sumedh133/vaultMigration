@@ -54,7 +54,7 @@ def allocate_ids(counter_doc_ref, label: str, chunk_size: int):
 
 
 def run_migration(xlsx_path: str, chunk_size: int = 500, checkpoint_file: str = "checkpoint.txt"):
-    df = pd.read_excel(xlsx_path, sheet_name="Merged sheet for CRM",dtype={"Primary Phone No.(Cleaned)": str}).fillna("")
+    df = pd.read_excel(xlsx_path, sheet_name="Corrected Merged sheet",dtype={"Primary Phone No.(Cleaned)- Main": str}).fillna("")
 
     # # Read checkpoint
     # last_user_id = None
@@ -72,7 +72,7 @@ def run_migration(xlsx_path: str, chunk_size: int = 500, checkpoint_file: str = 
     current_phone = None
     batch_rows = []
     for row in all_rows:
-        phone = str(row.get("Primary Phone No.(Cleaned)", "")).strip()
+        phone = str(row.get("Primary Phone No.(Cleaned)- Main", "")).strip()
         if current_phone is None or phone == current_phone:
             current_phone = phone
             batch_rows.append(row)
@@ -115,7 +115,7 @@ def run_migration(xlsx_path: str, chunk_size: int = 500, checkpoint_file: str = 
         writer.close()
 
         # Save checkpoint
-        last_user_phone = str(chunk[-1][0].get("Primary Phone No.(Cleaned)", "")).strip()
+        last_user_phone = str(chunk[-1][0].get("Primary Phone No.(Cleaned)- Main", "")).strip()
         with open(checkpoint_file, "w") as f:
             f.write(last_user_phone)
 
@@ -124,6 +124,6 @@ def run_migration(xlsx_path: str, chunk_size: int = 500, checkpoint_file: str = 
 
 if __name__ == "__main__":
     run_migration(
-        "Copy of users_services_template (1).xlsx",
+        "Fixing phone no.xlsx",
         chunk_size=200
     )

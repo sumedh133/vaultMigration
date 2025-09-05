@@ -250,7 +250,7 @@ def add_service_note(service: Dict[str, Any], column_name: str, row: Dict[str, A
     if not note_content:
         return
     
-    print(note_content)
+    # print(note_content)
 
     note_entry = {
         "noteContent": note_content,

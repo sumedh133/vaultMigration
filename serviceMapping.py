@@ -16,6 +16,18 @@ def safe_str(val):
         return ""
     return str(val).strip()
 
+def safe_strUnit(val):
+    """Convert value to string safely and strip whitespace.
+    If val is a float that looks like an integer, drop the .0
+    """
+    if val is None:
+        return ""
+    if isinstance(val, float):
+        if val.is_integer():
+            return str(int(val))
+        return str(val)
+    return str(val).strip()
+
 def generate_bucket_transitions(row):
     """Fill all buckets with the same enteredAt timestamp from Date column."""
     ts = excelTimestampToUnix(row.get("Date"))
@@ -84,7 +96,7 @@ service_column_mapping = {
 
     # 📍 Address
     "addressLine1": lambda row, user: safe_str(row.get("Society Name", "")) or f"Apartment-{random.randint(1000, 9999)}",
-    "addressLine2": lambda row, user: safe_str(row.get("Unit No.", "")),
+    "addressLine2": lambda row, user: safe_strUnit(row.get("Unit No.", "")),
     "addressLine3": lambda row, user: safe_str(row.get("Block No. (Optional)", "")),
     # "address": lambda row, user: safe_str(row.get("Society Name", "")) or f"Apartment-{random.randint(1000, 9999)}",
     "address": lambda row, user: ", ".join(
@@ -100,7 +112,7 @@ service_column_mapping = {
     "amountPaid": lambda row, user: 0,
 
     # 📄 Process Tracking
-    "docummentSubmissionStatus": lambda row, user: safe_str(row.get("Document Collected", "")).lower() in ["yes", "not needed"],
+    "docummentSubmissionStatus": lambda row, user: safe_str(row.get("Doc Collected", "")).lower() in ["yes", "not needed","Yes"],
     "summaryEmailSentStatus": lambda row, user: False,
     "blockerReason": lambda row, user: safe_str(row.get("Blocker Reason", "")) if safe_str(row.get("Blocked", "")).lower() == "yes" else "",
 
@@ -118,6 +130,7 @@ service_column_mapping = {
     "reAppliedCount": lambda row, user: row.get("Re-applied Count",0),
     "bucketTransitions": lambda row, user: generate_bucket_transitions(row),
     "completionTime": lambda row, user: None,
+    "epId": lambda row, user: safe_str(row.get("Notes", "")),
     
     "updateBy": lambda row, user: None,
 }

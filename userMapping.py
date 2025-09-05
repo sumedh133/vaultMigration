@@ -14,10 +14,10 @@ user_column_mapping = {
     "userId": lambda row: row["_user_id_allocated"],
     "userName": lambda row: safe_str(row.get("Name", "")) or "Unnamed",
     "emailAddress": lambda row: None,
-    "phoneNumber": lambda row: format_phone_number(row.get("Primary Phone No.(Cleaned)", "")) or "0000000000",
+    "phoneNumber": lambda row: format_phone_number(row.get("Primary Phone No.(Cleaned)- Main", "")) or "0000000000",
     "phoneNos": lambda row: [
         {
-            "number": format_phone_number(row.get("Primary Phone No.(Cleaned)", "")) or "0000000000",
+            "number": format_phone_number(row.get("Primary Phone No.(Cleaned)- Main", "")) or "0000000000",
             "addedOn": excelTimestampToUnix(row.get("Date")),
         }
     ] + (
